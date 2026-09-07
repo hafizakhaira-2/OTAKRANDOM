@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overthinking Generator 🫠</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div class="badge">🧠 MODE: OVERTHINKING</div>
+      <h1>Aku kepikiran<br><span>sesuatu...</span> 🫠</h1>
+      <p>Padahal nggak penting, tapi sekarang jadi kepikiran 😭</p>
+    </section>
+
+    <section class="generator">
+      <div class="category-row">
+        <button class="category active" data-category="random">🎲 Random</button>
+        <button class="category" data-category="absurd">😂 Absurd</button>
+        <button class="category" data-category="deep">🧠 Deep</button>
+        <button class="category" data-category="night">🌙 Jam 2 Pagi</button>
+      </div>
+
+      <div class="thought-card" id="thoughtCard">
+        <div class="sparkle">✦</div>
+        <div class="emoji" id="thoughtEmoji">💭</div>
+        <p id="thought">Klik tombol di bawah dan biarkan otakmu bekerja terlalu keras.</p>
+      </div>
+
+      <button class="main-btn" id="generateBtn">
+        <span>💭</span> Aku kepikiran sesuatu...
+      </button>
+
+      <button class="again-btn" id="againBtn">🔄 LAGI</button>
+
+      <div class="counter">
+        <span>Overthinking ke-<b id="count">0</b> hari ini</span>
+        <span>🫠</span>
+      </div>
+    </section>
+
+    <footer>
+      Dibuat untuk orang yang mikirnya kejauhan padahal cuma mau rebahan.
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
