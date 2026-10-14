@@ -31,7 +31,7 @@
  *     Hapus kode default, paste SELURUH isi file ini.
  *
  *  6. Ganti SPREADSHEET_ID di bawah dengan ID spreadsheet kamu
- *     (ambil dari URL: https://docs.google.com/spreadsheets/d/INI_ID_NYA/edit)
+ *     (ambil dari URL: https://docs.google.com/spreadsheets/d/1ti8VaY6M6_eyGP2lYd6wGjj8brcjjDnMioosFffCZ_0/edit)
  *
  *  7. Deploy:
  *     - Klik Deploy → New deployment
@@ -46,7 +46,7 @@
  *     total_generates | 0
  */
 
-const SPREADSHEET_ID = "PASTE_SPREADSHEET_ID_DISINI";
+const SPREADSHEET_ID = "1ti8VaY6M6_eyGP2lYd6wGjj8brcjjDnMioosFffCZ_0";
 // Contoh: "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
 
 const SHEET_THOUGHTS     = "Thoughts";
