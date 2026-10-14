@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Overthinking Generator 🫠</title>
+  <meta name="description" content="Tempat lahirnya pikiran random. Nggak penting, tapi kepikiran.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -29,6 +30,10 @@
         <div class="sparkle">✦</div>
         <div class="emoji" id="thoughtEmoji">💭</div>
         <p id="thought">Klik tombol di bawah dan biarkan otakmu bekerja terlalu keras.</p>
+        <div class="loading-overlay" id="loadingOverlay" hidden>
+          <div class="spinner"></div>
+          <span>Sedang overthinking...</span>
+        </div>
       </div>
 
       <button class="main-btn" id="generateBtn">
@@ -39,12 +44,52 @@
 
       <div class="counter">
         <span>Overthinking ke-<b id="count">0</b> hari ini</span>
+        <span class="global-stat" id="globalStat" hidden>• Total global: <b id="globalCount">0</b></span>
         <span>🫠</span>
       </div>
     </section>
 
+    <!-- Form Submit -->
+    <section class="submit-section" id="submitSection">
+      <button class="toggle-submit" id="toggleSubmit">
+        ✍️ Kirim pemikiran random kamu
+      </button>
+
+      <form class="submit-form" id="submitForm" hidden>
+        <h3>Kirim pemikiranmu 🫠</h3>
+        <p class="form-desc">Nanti di-review dulu biar nggak spam. Kalau lolos, bakal muncul di generator.</p>
+
+        <div class="form-group">
+          <label for="submitCategory">Kategori</label>
+          <select id="submitCategory" required>
+            <option value="random">🎲 Random</option>
+            <option value="absurd">😂 Absurd</option>
+            <option value="deep">🧠 Deep</option>
+            <option value="night">🌙 Jam 2 Pagi</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="submitEmoji">Emoji (opsional)</label>
+          <input type="text" id="submitEmoji" placeholder="💭" maxlength="4">
+        </div>
+
+        <div class="form-group">
+          <label for="submitText">Pemikiranmu</label>
+          <textarea id="submitText" rows="3" placeholder="Contoh: Kenapa kita bilang 'sebentar' tapi bisa 2 jam?" required maxlength="280"></textarea>
+          <div class="char-count"><span id="charCount">0</span>/280</div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          Kirim 🚀
+        </button>
+        <p class="form-status" id="formStatus"></p>
+      </form>
+    </section>
+
     <footer>
-      Dibuat untuk orang yang mikirnya kejauhan padahal cuma mau rebahan.
+      Dibuat untuk orang yang mikirnya kejauhan padahal cuma mau rebahan.<br>
+      <span class="powered">Powered by Google Sheets + Apps Script</span>
     </footer>
   </main>
 

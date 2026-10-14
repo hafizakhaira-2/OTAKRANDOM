@@ -1,4 +1,20 @@
-const thoughts = {
+/**
+ * ============================================================
+ *  OTAKRANDOM v2 – Overthinking Generator
+ *  Frontend + Google Sheets via Apps Script
+ * ============================================================
+ *
+ *  CARA SETUP:
+ *  1. Deploy Apps Script (lihat file apps-script/Code.gs)
+ *  2. Copy URL Web App-nya
+ *  3. Paste di bawah ini (ganti string API_URL)
+ */
+
+const API_URL = "PASTE_APPS_SCRIPT_WEB_APP_URL_DISINI";
+// Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
+
+/* ---------- Fallback data (kalau API belum di-set / offline) ---------- */
+const FALLBACK_THOUGHTS = {
   random: [
     ["🚪", "Kenapa kalau masuk kamar kita sering lupa mau ngapain?"],
     ["🐟", "Kalau ikan minum air, dia sebenarnya lagi minum atau cuma berenang?"],
@@ -33,19 +49,98 @@ const thoughts = {
   ]
 };
 
+/* ---------- State ---------- */
 let currentCategory = "random";
+let thoughtsCache = null;          // akan diisi dari API
 let count = Number(localStorage.getItem("overthinkingCount") || 0);
+let isLoading = false;
 
-const thoughtEl = document.getElementById("thought");
-const emojiEl = document.getElementById("thoughtEmoji");
-const card = document.getElementById("thoughtCard");
-const countEl = document.getElementById("count");
+/* ---------- DOM ---------- */
+const thoughtEl   = document.getElementById("thought");
+const emojiEl     = document.getElementById("thoughtEmoji");
+const card        = document.getElementById("thoughtCard");
+const countEl     = document.getElementById("count");
+const globalStat  = document.getElementById("globalStat");
+const globalCount = document.getElementById("globalCount");
+const loadingOverlay = document.getElementById("loadingOverlay");
+const generateBtn = document.getElementById("generateBtn");
+const againBtn    = document.getElementById("againBtn");
 
 countEl.textContent = count;
 
+/* ---------- API helpers ---------- */
+async function apiGet(params = {}) {
+  if (!API_URL || API_URL.includes("PASTE_APPS_SCRIPT")) {
+    throw new Error("API_URL belum di-set");
+  }
+  const url = new URL(API_URL);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+  const res = await fetch(url.toString(), { method: "GET" });
+  if (!res.ok) throw new Error("Network error");
+  return res.json();
+}
+
+async function apiPost(payload) {
+  if (!API_URL || API_URL.includes("PASTE_APPS_SCRIPT")) {
+    throw new Error("API_URL belum di-set");
+  }
+  // Apps Script doPost menerima form-urlencoded atau text
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+    redirect: "follow"
+  });
+  if (!res.ok) throw new Error("Network error");
+  return res.json();
+}
+
+/* ---------- Load thoughts from API (sekali saja) ---------- */
+async function loadThoughts() {
+  try {
+    const data = await apiGet({ action: "getThoughts" });
+    if (data.success && data.thoughts) {
+      thoughtsCache = data.thoughts;
+      console.log("✅ Thoughts loaded from Google Sheets");
+      return true;
+    }
+  } catch (e) {
+    console.warn("⚠️ Gagal load dari API, pakai fallback lokal:", e.message);
+  }
+  thoughtsCache = FALLBACK_THOUGHTS;
+  return false;
+}
+
+/* ---------- Generate ---------- */
+function getList(category) {
+  if (thoughtsCache && thoughtsCache[category] && thoughtsCache[category].length) {
+    return thoughtsCache[category];
+  }
+  return FALLBACK_THOUGHTS[category] || FALLBACK_THOUGHTS.random;
+}
+
+function showLoading(show) {
+  isLoading = show;
+  loadingOverlay.hidden = !show;
+  generateBtn.disabled = show;
+  againBtn.disabled = show;
+}
+
 function generate() {
-  const list = thoughts[currentCategory];
-  const [emoji, text] = list[Math.floor(Math.random() * list.length)];
+  if (isLoading) return;
+
+  const list = getList(currentCategory);
+  const item = list[Math.floor(Math.random() * list.length)];
+
+  // Support both formats: [emoji, text] or {emoji, text}
+  let emoji, text;
+  if (Array.isArray(item)) {
+    [emoji, text] = item;
+  } else {
+    emoji = item.emoji || "💭";
+    text  = item.text  || item;
+  }
 
   emojiEl.textContent = emoji;
   thoughtEl.textContent = "“" + text + "”";
@@ -57,8 +152,22 @@ function generate() {
   count++;
   countEl.textContent = count;
   localStorage.setItem("overthinkingCount", count);
+
+  // Optional: kirim hit ke server (fire & forget)
+  trackGenerate(currentCategory).catch(() => {});
 }
 
+async function trackGenerate(category) {
+  try {
+    const data = await apiGet({ action: "track", category });
+    if (data.success && data.total != null) {
+      globalCount.textContent = data.total;
+      globalStat.hidden = false;
+    }
+  } catch (_) { /* silent */ }
+}
+
+/* ---------- Category buttons ---------- */
 document.querySelectorAll(".category").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelector(".category.active").classList.remove("active");
@@ -68,5 +177,85 @@ document.querySelectorAll(".category").forEach(btn => {
   });
 });
 
-document.getElementById("generateBtn").addEventListener("click", generate);
-document.getElementById("againBtn").addEventListener("click", generate);
+generateBtn.addEventListener("click", generate);
+againBtn.addEventListener("click", generate);
+
+/* ---------- Submit form ---------- */
+const toggleSubmit = document.getElementById("toggleSubmit");
+const submitForm   = document.getElementById("submitForm");
+const submitBtn    = document.getElementById("submitBtn");
+const formStatus   = document.getElementById("formStatus");
+const submitText   = document.getElementById("submitText");
+const charCount    = document.getElementById("charCount");
+
+toggleSubmit.addEventListener("click", () => {
+  const isHidden = submitForm.hidden;
+  submitForm.hidden = !isHidden;
+  toggleSubmit.textContent = isHidden
+    ? "✕ Tutup form"
+    : "✍️ Kirim pemikiran random kamu";
+});
+
+submitText.addEventListener("input", () => {
+  charCount.textContent = submitText.value.length;
+});
+
+submitForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  formStatus.textContent = "";
+  formStatus.className = "form-status";
+
+  const category = document.getElementById("submitCategory").value;
+  const emoji    = document.getElementById("submitEmoji").value.trim() || "💭";
+  const text     = submitText.value.trim();
+
+  if (text.length < 10) {
+    formStatus.textContent = "Pemikiran terlalu pendek 😅 minimal 10 karakter";
+    formStatus.classList.add("error");
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Mengirim...";
+
+  try {
+    const data = await apiPost({
+      action: "submit",
+      category,
+      emoji,
+      text
+    });
+
+    if (data.success) {
+      formStatus.textContent = "✅ Berhasil dikirim! Nanti di-review dulu ya 🫶";
+      formStatus.classList.add("success");
+      submitForm.reset();
+      charCount.textContent = "0";
+    } else {
+      throw new Error(data.message || "Gagal mengirim");
+    }
+  } catch (err) {
+    formStatus.textContent = "❌ Gagal mengirim. Coba lagi nanti ya.";
+    formStatus.classList.add("error");
+    console.error(err);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Kirim 🚀";
+  }
+});
+
+/* ---------- Init ---------- */
+(async function init() {
+  showLoading(true);
+  await loadThoughts();
+  showLoading(false);
+
+  // Coba ambil total global
+  try {
+    const data = await apiGet({ action: "stats" });
+    if (data.success && data.total != null) {
+      globalCount.textContent = data.total;
+      globalStat.hidden = false;
+    }
+  } catch (_) {}
+})();

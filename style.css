@@ -10,6 +10,8 @@
   --accent: #b995ff;
   --accent-2: #7c5cff;
   --border: rgba(255,255,255,.10);
+  --success: #4ade80;
+  --error: #f87171;
 }
 
 body {
@@ -94,6 +96,7 @@ h1 span {
   padding: 9px 13px;
   cursor: pointer;
   transition: .2s ease;
+  font: inherit;
 }
 
 .category:hover, .category.active {
@@ -139,6 +142,8 @@ h1 span {
 
 .emoji {
   font-size: 46px;
+  position: relative;
+  z-index: 1;
 }
 
 .thought-card p {
@@ -149,6 +154,34 @@ h1 span {
   font-family: "Space Grotesk", sans-serif;
   font-size: clamp(22px, 4vw, 32px);
   line-height: 1.25;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(18,16,28,.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 5;
+  border-radius: 28px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(185,149,255,.25);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .main-btn, .again-btn {
@@ -174,6 +207,12 @@ h1 span {
   box-shadow: 0 16px 42px rgba(124,92,255,.30);
 }
 
+.main-btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .again-btn {
   margin-top: 9px;
   padding: 13px;
@@ -192,19 +231,164 @@ h1 span {
   margin-top: 18px;
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 8px;
   color: var(--muted);
   font-size: 13px;
+  flex-wrap: wrap;
 }
 
 .counter b {
   color: #ded5ef;
 }
 
+.global-stat {
+  opacity: .85;
+}
+
+/* ===== Submit Section ===== */
+.submit-section {
+  margin: 40px auto 0;
+  max-width: 520px;
+}
+
+.toggle-submit {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: 1px dashed rgba(185,149,255,.35);
+  background: rgba(124,92,255,.08);
+  color: #cfc5ff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.toggle-submit:hover {
+  background: rgba(124,92,255,.15);
+  border-color: rgba(185,149,255,.55);
+}
+
+.submit-form {
+  margin-top: 16px;
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(33,29,51,.92), rgba(18,16,28,.88));
+  text-align: left;
+}
+
+.submit-form h3 {
+  margin: 0 0 6px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 20px;
+  text-align: center;
+}
+
+.form-desc {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cfc5ff;
+}
+
+.form-group select,
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.05);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color .2s;
+}
+
+.form-group select:focus,
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: rgba(185,149,255,.55);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.char-count {
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.submit-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 14px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent-2), #9b75ff);
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(124,92,255,.25);
+}
+
+.submit-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.form-status {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 13px;
+  min-height: 20px;
+}
+
+.form-status.success {
+  color: var(--success);
+}
+
+.form-status.error {
+  color: var(--error);
+}
+
 footer {
-  margin-top: 35px;
+  margin-top: 40px;
   color: #6f6a79;
   font-size: 12px;
+  line-height: 1.6;
+}
+
+.powered {
+  opacity: .7;
+  font-size: 11px;
 }
 
 .pop {
@@ -221,4 +405,5 @@ footer {
   .app { padding-top: 35px; }
   .thought-card { min-height: 285px; padding: 30px 22px; }
   .hero p { font-size: 14px; }
+  .submit-form { padding: 22px 18px; }
 }
