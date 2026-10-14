@@ -70,10 +70,10 @@ countEl.textContent = count;
 
 /* ---------- API helpers ---------- */
 async function apiGet(params = {}) {
-  if (!API_URL || API_URL.includes("PASTE_APPS_SCRIPT")) {
-    throw new Error("API_URL belum di-set");
+  if (!API_URL || API_URL.includes("https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5")) {
+    throw new Error("https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5");
   }
-  const url = new URL(API_URL);
+  const url = new URL(https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
   const res = await fetch(url.toString(), { method: "GET" });
@@ -82,8 +82,8 @@ async function apiGet(params = {}) {
 }
 
 async function apiPost(payload) {
-  if (!API_URL || API_URL.includes("PASTE_APPS_SCRIPT")) {
-    throw new Error("API_URL belum di-set");
+  if (!API_URL || API_URL.includes("https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5")) {
+    throw new Error("https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5");
   }
   // Apps Script doPost menerima form-urlencoded atau text
   const res = await fetch(API_URL, {
