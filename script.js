@@ -10,7 +10,7 @@
  *  3. Paste di bawah ini (ganti string API_URL)
  */
 
-const API_URL = "PASTE_APPS_SCRIPT_WEB_APP_URL_DISINI";
+const API_URL = "https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5";
 // Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
 
 /* ---------- Fallback data (kalau API belum di-set / offline) ---------- */
