@@ -67,7 +67,7 @@ const card           = document.getElementById("thoughtCard");
 const countEl        = document.getElementById("count");
 const globalStat     = document.getElementById("globalStat");
 const globalCount    = document.getElementById("globalCount");
-const loadingOverlay = document.getElementById("loadingOverlay");
+const loadingOverlay = null; // dihapus, tidak ada spinner lagi
 const generateBtn    = document.getElementById("generateBtn");
 const againBtn       = document.getElementById("againBtn");
 
@@ -186,16 +186,14 @@ function getList(category) {
 }
 
 function showLoading(show) {
-  isLoading = show;
-  if (loadingOverlay) loadingOverlay.hidden = !show;
-  if (generateBtn) generateBtn.disabled = show;
-  if (againBtn) againBtn.disabled = show;
+  // Tidak ada spinner. Fungsi ini sengaja kosong supaya tidak ada yang muter.
+  isLoading = false;
 }
 
 function generate() {
-  if (isLoading) return;
-
   const list = getList(currentCategory);
+  if (!list || !list.length) return;
+
   const item = list[Math.floor(Math.random() * list.length)];
 
   let emoji, text;
@@ -206,19 +204,27 @@ function generate() {
     text  = item.text  || item;
   }
 
-  if (emojiEl) emojiEl.textContent = emoji;
-  if (thoughtEl) thoughtEl.textContent = "“" + text + "”";
-
+  // Animasi reveal singkat (bukan spinner)
   if (card) {
-    card.classList.remove("pop");
-    void card.offsetWidth;
-    card.classList.add("pop");
+    card.classList.add("revealing");
+    setTimeout(() => {
+      if (emojiEl) emojiEl.textContent = emoji;
+      if (thoughtEl) thoughtEl.textContent = "“" + text + "”";
+      card.classList.remove("revealing");
+      card.classList.remove("pop");
+      void card.offsetWidth;
+      card.classList.add("pop");
+    }, 120);
+  } else {
+    if (emojiEl) emojiEl.textContent = emoji;
+    if (thoughtEl) thoughtEl.textContent = "“" + text + "”";
   }
 
   count++;
   if (countEl) countEl.textContent = count;
   localStorage.setItem("overthinkingCount", count);
 
+  // Track di background, tidak mempengaruhi UI
   trackGenerate(currentCategory).catch(() => {});
 }
 
@@ -654,27 +660,18 @@ document.getElementById("addThoughtForm")?.addEventListener("submit", async (e) 
 });
 
 /* ---------- Init ---------- */
-(async function init() {
-  // Tampilkan fallback/cache segera, jangan biarkan spinner menggantung
-  const hasCache = !!loadCachedThoughts();
-  if (!hasCache) {
-    thoughtsCache = FALLBACK_THOUGHTS;
-  }
+(function init() {
+  // Langsung siap pakai fallback / cache. Tidak ada yang ditunggu.
+  const cached = loadCachedThoughts();
+  thoughtsCache = cached || FALLBACK_THOUGHTS;
 
-  // Spinner maksimal 1.2 detik untuk kesan loading, lalu hilang
-  showLoading(true);
-  const loadingTimeout = setTimeout(() => showLoading(false), 1200);
+  // Tampilkan satu pemikiran random langsung saat halaman terbuka
+  generate();
 
-  // Load di background (tidak blocking UI)
-  loadThoughts().then(() => {
-    clearTimeout(loadingTimeout);
-    showLoading(false);
-  }).catch(() => {
-    clearTimeout(loadingTimeout);
-    showLoading(false);
-  });
+  // Refresh dari API di background (silent, tidak mengganggu)
+  loadThoughts().catch(() => {});
 
-  // Stats juga non-blocking
+  // Stats juga silent
   apiGet({ action: "stats" }, 5000).then(data => {
     if (data.success && data.total != null) {
       if (globalCount) globalCount.textContent = data.total;
