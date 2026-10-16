@@ -78,43 +78,103 @@ function isApiReady() {
   return API_URL && !API_URL.includes("PASTE_") && API_URL.includes("/exec");
 }
 
-async function apiGet(params = {}) {
+async function apiGet(params = {}, timeoutMs = 8000) {
   if (!isApiReady()) throw new Error("API_URL belum di-set. Paste URL Web App yang berakhiran /exec");
   const url = new URL(API_URL);
   Object.entries(params).forEach(([k, v]) => {
     if (v != null && v !== "") url.searchParams.set(k, v);
   });
-  const res = await fetch(url.toString(), { method: "GET" });
-  if (!res.ok) throw new Error("Network error " + res.status);
-  return res.json();
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      signal: controller.signal,
+      redirect: "follow"
+    });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error("Network error " + res.status);
+    return res.json();
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === "AbortError") throw new Error("Timeout (API lambat)");
+    throw e;
+  }
 }
 
-async function apiPost(payload) {
+async function apiPost(payload, timeoutMs = 12000) {
   if (!isApiReady()) throw new Error("API_URL belum di-set. Paste URL Web App yang berakhiran /exec");
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-    redirect: "follow"
-  });
-  if (!res.ok) throw new Error("Network error " + res.status);
-  return res.json();
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+      redirect: "follow",
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error("Network error " + res.status);
+    return res.json();
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === "AbortError") throw new Error("Timeout");
+    throw e;
+  }
+}
+
+/* ---------- Cache helpers ---------- */
+const CACHE_KEY = "otakrandom_thoughts_v3";
+const CACHE_TTL = 1000 * 60 * 30; // 30 menit
+
+function loadCachedThoughts() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.ts || !parsed.thoughts) return null;
+    if (Date.now() - parsed.ts > CACHE_TTL) return null;
+    return parsed.thoughts;
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedThoughts(thoughts) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), thoughts }));
+  } catch {}
 }
 
 /* ---------- Load thoughts ---------- */
 async function loadThoughts() {
+  // 1. Coba cache dulu (instant)
+  const cached = loadCachedThoughts();
+  if (cached) {
+    thoughtsCache = cached;
+    console.log("⚡ Thoughts dari cache lokal");
+  } else {
+    thoughtsCache = FALLBACK_THOUGHTS;
+  }
+
+  // 2. Refresh dari API di background (dengan timeout)
   try {
-    const data = await apiGet({ action: "getThoughts" });
-    if (data.success && data.thoughts) {
+    const data = await apiGet({ action: "getThoughts" }, 7000);
+    if (data.success && data.thoughts && Object.keys(data.thoughts).length) {
       thoughtsCache = data.thoughts;
-      console.log("✅ Thoughts loaded from Google Sheets");
+      saveCachedThoughts(data.thoughts);
+      console.log("✅ Thoughts refreshed dari Google Sheets");
       return true;
     }
   } catch (e) {
-    console.warn("⚠️ Gagal load dari API, pakai fallback lokal:", e.message);
+    console.warn("⚠️ API lambat/gagal, pakai cache/fallback:", e.message);
   }
-  thoughtsCache = FALLBACK_THOUGHTS;
-  return false;
+  return !!cached;
 }
 
 /* ---------- Generate ---------- */
@@ -595,15 +655,30 @@ document.getElementById("addThoughtForm")?.addEventListener("submit", async (e) 
 
 /* ---------- Init ---------- */
 (async function init() {
-  showLoading(true);
-  await loadThoughts();
-  showLoading(false);
+  // Tampilkan fallback/cache segera, jangan biarkan spinner menggantung
+  const hasCache = !!loadCachedThoughts();
+  if (!hasCache) {
+    thoughtsCache = FALLBACK_THOUGHTS;
+  }
 
-  try {
-    const data = await apiGet({ action: "stats" });
+  // Spinner maksimal 1.2 detik untuk kesan loading, lalu hilang
+  showLoading(true);
+  const loadingTimeout = setTimeout(() => showLoading(false), 1200);
+
+  // Load di background (tidak blocking UI)
+  loadThoughts().then(() => {
+    clearTimeout(loadingTimeout);
+    showLoading(false);
+  }).catch(() => {
+    clearTimeout(loadingTimeout);
+    showLoading(false);
+  });
+
+  // Stats juga non-blocking
+  apiGet({ action: "stats" }, 5000).then(data => {
     if (data.success && data.total != null) {
       if (globalCount) globalCount.textContent = data.total;
       if (globalStat) globalStat.hidden = false;
     }
-  } catch (_) {}
+  }).catch(() => {});
 })();
