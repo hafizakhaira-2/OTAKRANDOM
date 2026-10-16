@@ -11,7 +11,19 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="app">
+  <!-- Header / Nav -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo">🧠 OTAKRANDOM</a>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link active">Generator</a>
+        <a href="panduan.html" class="nav-link">Panduan</a>
+        <button class="nav-link admin-btn" id="adminBtn">🔐 Admin</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app" id="mainApp">
     <section class="hero">
       <div class="badge">🧠 MODE: OVERTHINKING</div>
       <h1>Aku kepikiran<br><span>sesuatu...</span> 🫠</h1>
@@ -92,6 +104,167 @@
       <span class="powered">Powered by Google Sheets + Apps Script</span>
     </footer>
   </main>
+
+  <!-- ========== ADMIN PANEL ========== -->
+  <div id="adminPanel" class="admin-panel" hidden>
+    <div class="admin-overlay"></div>
+    <div class="admin-modal">
+      <!-- Login -->
+      <div id="adminLoginView">
+        <h2>🔐 Admin Login</h2>
+        <p class="form-desc">Masukkan password untuk mengelola database.</p>
+        <div class="form-group">
+          <input type="password" id="adminPassword" placeholder="Password admin" autocomplete="current-password">
+        </div>
+        <button class="submit-btn" id="adminLoginBtn">Masuk</button>
+        <p class="form-status" id="adminLoginStatus"></p>
+        <button class="text-btn" id="adminCloseLogin">← Kembali</button>
+      </div>
+
+      <!-- Dashboard -->
+      <div id="adminDashView" hidden>
+        <div class="admin-header">
+          <h2>🛠️ Admin Panel</h2>
+          <button class="text-btn" id="adminLogout">Logout</button>
+        </div>
+
+        <div class="admin-stats" id="adminStatsBox">
+          <div class="stat-card"><span class="stat-num" id="statThoughts">–</span><span class="stat-label">Thoughts</span></div>
+          <div class="stat-card"><span class="stat-num" id="statPending">–</span><span class="stat-label">Pending</span></div>
+          <div class="stat-card"><span class="stat-num" id="statGenerates">–</span><span class="stat-label">Generates</span></div>
+        </div>
+
+        <div class="admin-tabs">
+          <button class="admin-tab active" data-tab="thoughts">📝 Thoughts</button>
+          <button class="admin-tab" data-tab="submissions">📥 Submissions</button>
+          <button class="admin-tab" data-tab="add">➕ Tambah</button>
+        </div>
+
+        <!-- Thoughts list -->
+        <div class="admin-tab-content" id="tab-thoughts">
+          <div class="admin-toolbar">
+            <input type="text" id="filterThoughts" placeholder="Cari teks / kategori...">
+            <select id="filterStatus">
+              <option value="">Semua status</option>
+              <option value="Approved">Approved</option>
+              <option value="Draft">Draft</option>
+              <option value="Hidden">Hidden</option>
+            </select>
+            <button class="small-btn" id="refreshThoughts">🔄 Refresh</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table" id="thoughtsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cat</th>
+                  <th>Emoji</th>
+                  <th>Teks</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Submissions list -->
+        <div class="admin-tab-content" id="tab-submissions" hidden>
+          <div class="admin-toolbar">
+            <button class="small-btn" id="refreshSubs">🔄 Refresh</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table" id="subsTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Waktu</th>
+                  <th>Cat</th>
+                  <th>Emoji</th>
+                  <th>Teks</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Add new thought -->
+        <div class="admin-tab-content" id="tab-add" hidden>
+          <form id="addThoughtForm" class="admin-form">
+            <div class="form-group">
+              <label>Kategori</label>
+              <select id="addCategory" required>
+                <option value="random">🎲 Random</option>
+                <option value="absurd">😂 Absurd</option>
+                <option value="deep">🧠 Deep</option>
+                <option value="night">🌙 Jam 2 Pagi</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Emoji</label>
+              <input type="text" id="addEmoji" placeholder="💭" maxlength="4">
+            </div>
+            <div class="form-group">
+              <label>Teks pemikiran</label>
+              <textarea id="addText" rows="3" required maxlength="280"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select id="addStatus">
+                <option value="Approved">Approved (langsung muncul)</option>
+                <option value="Draft">Draft</option>
+                <option value="Hidden">Hidden</option>
+              </select>
+            </div>
+            <button type="submit" class="submit-btn">Simpan Thought</button>
+            <p class="form-status" id="addStatusMsg"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit modal -->
+  <div id="editModal" class="edit-modal" hidden>
+    <div class="edit-box">
+      <h3>Edit Thought</h3>
+      <input type="hidden" id="editRow">
+      <div class="form-group">
+        <label>Kategori</label>
+        <select id="editCategory">
+          <option value="random">random</option>
+          <option value="absurd">absurd</option>
+          <option value="deep">deep</option>
+          <option value="night">night</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Emoji</label>
+        <input type="text" id="editEmoji" maxlength="4">
+      </div>
+      <div class="form-group">
+        <label>Teks</label>
+        <textarea id="editText" rows="3" maxlength="280"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="editStatus">
+          <option value="Approved">Approved</option>
+          <option value="Draft">Draft</option>
+          <option value="Hidden">Hidden</option>
+        </select>
+      </div>
+      <div class="edit-actions">
+        <button class="submit-btn" id="saveEditBtn">Simpan</button>
+        <button class="text-btn" id="cancelEditBtn">Batal</button>
+      </div>
+      <p class="form-status" id="editStatusMsg"></p>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>

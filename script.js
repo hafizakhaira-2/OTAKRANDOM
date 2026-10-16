@@ -1,17 +1,21 @@
 /**
  * ============================================================
- *  OTAKRANDOM v2 – Overthinking Generator
+ *  OTAKRANDOM v3 – Overthinking Generator
  *  Frontend + Google Sheets via Apps Script
  * ============================================================
  *
- *  CARA SETUP:
- *  1. Deploy Apps Script (lihat file apps-script/Code.gs)
- *  2. Copy URL Web App-nya
- *  3. Paste di bawah ini (ganti string API_URL)
+ *  SETUP:
+ *  1. Deploy Apps Script (Code.gs) sebagai Web App
+ *  2. Copy URL yang berakhiran /exec
+ *  3. Paste di bawah (ganti string API_URL)
+ *
+ *  Password & Spreadsheet ID disimpan di Script Properties
+ *  (bukan di sini!) agar aman di GitHub Pages.
  */
 
-const API_URL = "https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5";
-// Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
+const API_URL = "PASTE_APPS_SCRIPT_WEB_APP_URL_DISINI";
+// Contoh benar: "https://script.google.com/macros/s/AKfycb.../exec"
+// JANGAN pakai URL /library/...
 
 /* ---------- Fallback data (kalau API belum di-set / offline) ---------- */
 const FALLBACK_THOUGHTS = {
@@ -51,52 +55,53 @@ const FALLBACK_THOUGHTS = {
 
 /* ---------- State ---------- */
 let currentCategory = "random";
-let thoughtsCache = null;          // akan diisi dari API
+let thoughtsCache = null;
 let count = Number(localStorage.getItem("overthinkingCount") || 0);
 let isLoading = false;
+let adminPassword = sessionStorage.getItem("otak_admin_pw") || "";
 
 /* ---------- DOM ---------- */
-const thoughtEl   = document.getElementById("thought");
-const emojiEl     = document.getElementById("thoughtEmoji");
-const card        = document.getElementById("thoughtCard");
-const countEl     = document.getElementById("count");
-const globalStat  = document.getElementById("globalStat");
-const globalCount = document.getElementById("globalCount");
+const thoughtEl      = document.getElementById("thought");
+const emojiEl        = document.getElementById("thoughtEmoji");
+const card           = document.getElementById("thoughtCard");
+const countEl        = document.getElementById("count");
+const globalStat     = document.getElementById("globalStat");
+const globalCount    = document.getElementById("globalCount");
 const loadingOverlay = document.getElementById("loadingOverlay");
-const generateBtn = document.getElementById("generateBtn");
-const againBtn    = document.getElementById("againBtn");
+const generateBtn    = document.getElementById("generateBtn");
+const againBtn       = document.getElementById("againBtn");
 
-countEl.textContent = count;
+if (countEl) countEl.textContent = count;
 
 /* ---------- API helpers ---------- */
-async function apiGet(params = {}) {
-  if (!API_URL || API_URL.includes("https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5")) {
-    throw new Error("https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5");
-  }
-  const url = new URL(https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+function isApiReady() {
+  return API_URL && !API_URL.includes("PASTE_") && API_URL.includes("/exec");
+}
 
+async function apiGet(params = {}) {
+  if (!isApiReady()) throw new Error("API_URL belum di-set. Paste URL Web App yang berakhiran /exec");
+  const url = new URL(API_URL);
+  Object.entries(params).forEach(([k, v]) => {
+    if (v != null && v !== "") url.searchParams.set(k, v);
+  });
   const res = await fetch(url.toString(), { method: "GET" });
-  if (!res.ok) throw new Error("Network error");
+  if (!res.ok) throw new Error("Network error " + res.status);
   return res.json();
 }
 
 async function apiPost(payload) {
-  if (!API_URL || API_URL.includes("https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5")) {
-    throw new Error("https://script.google.com/macros/library/d/136yiJu2HJtQgREb8JEpYZRqJU3ReGDxlai67iJsy7_CH1mXUeqmuPtRZ/5");
-  }
-  // Apps Script doPost menerima form-urlencoded atau text
+  if (!isApiReady()) throw new Error("API_URL belum di-set. Paste URL Web App yang berakhiran /exec");
   const res = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload),
     redirect: "follow"
   });
-  if (!res.ok) throw new Error("Network error");
+  if (!res.ok) throw new Error("Network error " + res.status);
   return res.json();
 }
 
-/* ---------- Load thoughts from API (sekali saja) ---------- */
+/* ---------- Load thoughts ---------- */
 async function loadThoughts() {
   try {
     const data = await apiGet({ action: "getThoughts" });
@@ -122,9 +127,9 @@ function getList(category) {
 
 function showLoading(show) {
   isLoading = show;
-  loadingOverlay.hidden = !show;
-  generateBtn.disabled = show;
-  againBtn.disabled = show;
+  if (loadingOverlay) loadingOverlay.hidden = !show;
+  if (generateBtn) generateBtn.disabled = show;
+  if (againBtn) againBtn.disabled = show;
 }
 
 function generate() {
@@ -133,7 +138,6 @@ function generate() {
   const list = getList(currentCategory);
   const item = list[Math.floor(Math.random() * list.length)];
 
-  // Support both formats: [emoji, text] or {emoji, text}
   let emoji, text;
   if (Array.isArray(item)) {
     [emoji, text] = item;
@@ -142,18 +146,19 @@ function generate() {
     text  = item.text  || item;
   }
 
-  emojiEl.textContent = emoji;
-  thoughtEl.textContent = "“" + text + "”";
+  if (emojiEl) emojiEl.textContent = emoji;
+  if (thoughtEl) thoughtEl.textContent = "“" + text + "”";
 
-  card.classList.remove("pop");
-  void card.offsetWidth;
-  card.classList.add("pop");
+  if (card) {
+    card.classList.remove("pop");
+    void card.offsetWidth;
+    card.classList.add("pop");
+  }
 
   count++;
-  countEl.textContent = count;
+  if (countEl) countEl.textContent = count;
   localStorage.setItem("overthinkingCount", count);
 
-  // Optional: kirim hit ke server (fire & forget)
   trackGenerate(currentCategory).catch(() => {});
 }
 
@@ -161,24 +166,25 @@ async function trackGenerate(category) {
   try {
     const data = await apiGet({ action: "track", category });
     if (data.success && data.total != null) {
-      globalCount.textContent = data.total;
-      globalStat.hidden = false;
+      if (globalCount) globalCount.textContent = data.total;
+      if (globalStat) globalStat.hidden = false;
     }
-  } catch (_) { /* silent */ }
+  } catch (_) {}
 }
 
 /* ---------- Category buttons ---------- */
 document.querySelectorAll(".category").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelector(".category.active").classList.remove("active");
+    const active = document.querySelector(".category.active");
+    if (active) active.classList.remove("active");
     btn.classList.add("active");
     currentCategory = btn.dataset.category;
     generate();
   });
 });
 
-generateBtn.addEventListener("click", generate);
-againBtn.addEventListener("click", generate);
+if (generateBtn) generateBtn.addEventListener("click", generate);
+if (againBtn) againBtn.addEventListener("click", generate);
 
 /* ---------- Submit form ---------- */
 const toggleSubmit = document.getElementById("toggleSubmit");
@@ -188,59 +194,402 @@ const formStatus   = document.getElementById("formStatus");
 const submitText   = document.getElementById("submitText");
 const charCount    = document.getElementById("charCount");
 
-toggleSubmit.addEventListener("click", () => {
-  const isHidden = submitForm.hidden;
-  submitForm.hidden = !isHidden;
-  toggleSubmit.textContent = isHidden
-    ? "✕ Tutup form"
-    : "✍️ Kirim pemikiran random kamu";
-});
+if (toggleSubmit && submitForm) {
+  toggleSubmit.addEventListener("click", () => {
+    const isHidden = submitForm.hidden;
+    submitForm.hidden = !isHidden;
+    toggleSubmit.textContent = isHidden
+      ? "✕ Tutup form"
+      : "✍️ Kirim pemikiran random kamu";
+  });
+}
 
-submitText.addEventListener("input", () => {
-  charCount.textContent = submitText.value.length;
-});
+if (submitText && charCount) {
+  submitText.addEventListener("input", () => {
+    charCount.textContent = submitText.value.length;
+  });
+}
 
-submitForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  formStatus.textContent = "";
-  formStatus.className = "form-status";
+if (submitForm) {
+  submitForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (formStatus) {
+      formStatus.textContent = "";
+      formStatus.className = "form-status";
+    }
 
-  const category = document.getElementById("submitCategory").value;
-  const emoji    = document.getElementById("submitEmoji").value.trim() || "💭";
-  const text     = submitText.value.trim();
+    const category = document.getElementById("submitCategory").value;
+    const emoji    = (document.getElementById("submitEmoji").value || "").trim() || "💭";
+    const text     = submitText.value.trim();
 
-  if (text.length < 10) {
-    formStatus.textContent = "Pemikiran terlalu pendek 😅 minimal 10 karakter";
-    formStatus.classList.add("error");
-    return;
+    if (text.length < 10) {
+      if (formStatus) {
+        formStatus.textContent = "Pemikiran terlalu pendek 😅 minimal 10 karakter";
+        formStatus.classList.add("error");
+      }
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Mengirim...";
+    }
+
+    try {
+      const data = await apiPost({ action: "submit", category, emoji, text });
+      if (data.success) {
+        if (formStatus) {
+          formStatus.textContent = "✅ Berhasil dikirim! Nanti di-review dulu ya 🫶";
+          formStatus.classList.add("success");
+        }
+        submitForm.reset();
+        if (charCount) charCount.textContent = "0";
+      } else {
+        throw new Error(data.message || "Gagal mengirim");
+      }
+    } catch (err) {
+      if (formStatus) {
+        formStatus.textContent = "❌ Gagal mengirim. Coba lagi nanti ya.";
+        formStatus.classList.add("error");
+      }
+      console.error(err);
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Kirim 🚀";
+      }
+    }
+  });
+}
+
+/* ============================================================
+ *  ADMIN PANEL
+ * ============================================================ */
+const adminPanel      = document.getElementById("adminPanel");
+const adminLoginView  = document.getElementById("adminLoginView");
+const adminDashView   = document.getElementById("adminDashView");
+const adminBtn        = document.getElementById("adminBtn");
+const adminLoginBtn   = document.getElementById("adminLoginBtn");
+const adminPasswordEl = document.getElementById("adminPassword");
+const adminLoginStatus= document.getElementById("adminLoginStatus");
+const adminCloseLogin = document.getElementById("adminCloseLogin");
+const adminLogout     = document.getElementById("adminLogout");
+
+let allThoughts = [];
+let allSubs = [];
+
+function openAdmin() {
+  if (!adminPanel) return;
+  adminPanel.hidden = false;
+  if (adminPassword) {
+    showDash();
+  } else {
+    showLogin();
   }
+}
 
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Mengirim...";
+function closeAdmin() {
+  if (adminPanel) adminPanel.hidden = true;
+}
 
+function showLogin() {
+  if (adminLoginView) adminLoginView.hidden = false;
+  if (adminDashView) adminDashView.hidden = true;
+  if (adminLoginStatus) {
+    adminLoginStatus.textContent = "";
+    adminLoginStatus.className = "form-status";
+  }
+}
+
+function showDash() {
+  if (adminLoginView) adminLoginView.hidden = true;
+  if (adminDashView) adminDashView.hidden = false;
+  loadAdminData();
+}
+
+if (adminBtn) adminBtn.addEventListener("click", openAdmin);
+if (adminCloseLogin) adminCloseLogin.addEventListener("click", closeAdmin);
+
+if (adminLoginBtn) {
+  adminLoginBtn.addEventListener("click", async () => {
+    const pw = (adminPasswordEl?.value || "").trim();
+    if (!pw) {
+      if (adminLoginStatus) {
+        adminLoginStatus.textContent = "Password kosong";
+        adminLoginStatus.classList.add("error");
+      }
+      return;
+    }
+    adminLoginBtn.disabled = true;
+    adminLoginBtn.textContent = "Memeriksa...";
+    try {
+      const data = await apiPost({ action: "admin_login", password: pw });
+      if (data.success) {
+        adminPassword = pw;
+        sessionStorage.setItem("otak_admin_pw", pw);
+        showDash();
+      } else {
+        throw new Error(data.message || "Password salah");
+      }
+    } catch (err) {
+      if (adminLoginStatus) {
+        adminLoginStatus.textContent = "❌ " + (err.message || "Login gagal");
+        adminLoginStatus.classList.add("error");
+      }
+    } finally {
+      adminLoginBtn.disabled = false;
+      adminLoginBtn.textContent = "Masuk";
+    }
+  });
+}
+
+if (adminLogout) {
+  adminLogout.addEventListener("click", () => {
+    adminPassword = "";
+    sessionStorage.removeItem("otak_admin_pw");
+    showLogin();
+  });
+}
+
+// Close when clicking overlay
+document.querySelector(".admin-overlay")?.addEventListener("click", closeAdmin);
+
+/* Admin tabs */
+document.querySelectorAll(".admin-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".admin-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    const name = tab.dataset.tab;
+    document.querySelectorAll(".admin-tab-content").forEach(c => c.hidden = true);
+    const target = document.getElementById("tab-" + name);
+    if (target) target.hidden = false;
+  });
+});
+
+async function loadAdminData() {
+  await Promise.all([loadAdminStats(), loadAdminThoughts(), loadAdminSubs()]);
+}
+
+async function loadAdminStats() {
   try {
-    const data = await apiPost({
-      action: "submit",
-      category,
-      emoji,
-      text
-    });
-
+    const data = await apiGet({ action: "admin_stats", password: adminPassword });
     if (data.success) {
-      formStatus.textContent = "✅ Berhasil dikirim! Nanti di-review dulu ya 🫶";
-      formStatus.classList.add("success");
-      submitForm.reset();
-      charCount.textContent = "0";
+      const elT = document.getElementById("statThoughts");
+      const elP = document.getElementById("statPending");
+      const elG = document.getElementById("statGenerates");
+      if (elT) elT.textContent = data.thoughtCount ?? "–";
+      if (elP) elP.textContent = data.pending ?? "–";
+      if (elG) elG.textContent = data.total ?? "–";
+    }
+  } catch (_) {}
+}
+
+async function loadAdminThoughts() {
+  try {
+    const data = await apiGet({ action: "admin_thoughts", password: adminPassword });
+    if (data.success) {
+      allThoughts = data.items || [];
+      renderThoughtsTable();
+    }
+  } catch (e) {
+    console.error("load thoughts", e);
+  }
+}
+
+async function loadAdminSubs() {
+  try {
+    const data = await apiGet({ action: "admin_submissions", password: adminPassword });
+    if (data.success) {
+      allSubs = data.items || [];
+      renderSubsTable();
+    }
+  } catch (e) {
+    console.error("load subs", e);
+  }
+}
+
+function renderThoughtsTable() {
+  const tbody = document.querySelector("#thoughtsTable tbody");
+  if (!tbody) return;
+
+  const q = (document.getElementById("filterThoughts")?.value || "").toLowerCase();
+  const st = document.getElementById("filterStatus")?.value || "";
+
+  const filtered = allThoughts.filter(item => {
+    if (st && item.status !== st) return false;
+    if (q && !(item.text + item.category + item.emoji).toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  tbody.innerHTML = filtered.map(item => `
+    <tr data-row="${item.row}">
+      <td>${item.id}</td>
+      <td><span class="badge-cat">${esc(item.category)}</span></td>
+      <td>${esc(item.emoji)}</td>
+      <td class="text-cell">${esc(item.text)}</td>
+      <td><span class="badge-status status-${esc(item.status).toLowerCase()}">${esc(item.status)}</span></td>
+      <td class="actions-cell">
+        <button class="icon-btn" onclick="editThought(${item.row})" title="Edit">✏️</button>
+        <button class="icon-btn" onclick="deleteThought(${item.row})" title="Hapus">🗑️</button>
+      </td>
+    </tr>
+  `).join("") || `<tr><td colspan="6" style="text-align:center;opacity:.6">Tidak ada data</td></tr>`;
+}
+
+function renderSubsTable() {
+  const tbody = document.querySelector("#subsTable tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = allSubs.map(item => {
+    const time = item.timestamp ? new Date(item.timestamp).toLocaleString("id-ID") : "–";
+    const isPending = item.status.toLowerCase() === "pending";
+    return `
+    <tr data-row="${item.row}">
+      <td>${item.id}</td>
+      <td class="time-cell">${time}</td>
+      <td><span class="badge-cat">${esc(item.category)}</span></td>
+      <td>${esc(item.emoji)}</td>
+      <td class="text-cell">${esc(item.text)}</td>
+      <td><span class="badge-status status-${esc(item.status).toLowerCase()}">${esc(item.status)}</span></td>
+      <td class="actions-cell">
+        ${isPending ? `
+          <button class="icon-btn ok" onclick="approveSub(${item.row})" title="Approve">✅</button>
+          <button class="icon-btn" onclick="rejectSub(${item.row})" title="Reject">❌</button>
+        ` : ""}
+        <button class="icon-btn" onclick="deleteSub(${item.row})" title="Hapus">🗑️</button>
+      </td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="7" style="text-align:center;opacity:.6">Tidak ada submission</td></tr>`;
+}
+
+function esc(s) {
+  const d = document.createElement("div");
+  d.textContent = s ?? "";
+  return d.innerHTML;
+}
+
+// Filters
+document.getElementById("filterThoughts")?.addEventListener("input", renderThoughtsTable);
+document.getElementById("filterStatus")?.addEventListener("change", renderThoughtsTable);
+document.getElementById("refreshThoughts")?.addEventListener("click", () => loadAdminThoughts());
+document.getElementById("refreshSubs")?.addEventListener("click", () => loadAdminSubs());
+
+/* CRUD actions (global so onclick works) */
+window.editThought = function(row) {
+  const item = allThoughts.find(t => t.row === row);
+  if (!item) return;
+  document.getElementById("editRow").value = row;
+  document.getElementById("editCategory").value = item.category;
+  document.getElementById("editEmoji").value = item.emoji;
+  document.getElementById("editText").value = item.text;
+  document.getElementById("editStatus").value = item.status;
+  document.getElementById("editStatusMsg").textContent = "";
+  document.getElementById("editModal").hidden = false;
+};
+
+window.deleteThought = async function(row) {
+  if (!confirm("Hapus thought ini?")) return;
+  try {
+    const data = await apiPost({ action: "delete_thought", password: adminPassword, row });
+    if (data.success) {
+      await loadAdminThoughts();
+      await loadAdminStats();
+    } else alert(data.message);
+  } catch (e) { alert(e.message); }
+};
+
+window.approveSub = async function(row) {
+  if (!confirm("Setujui & tambahkan ke Thoughts?")) return;
+  try {
+    const data = await apiPost({ action: "approve_submission", password: adminPassword, row });
+    if (data.success) {
+      await loadAdminSubs();
+      await loadAdminThoughts();
+      await loadAdminStats();
+    } else alert(data.message);
+  } catch (e) { alert(e.message); }
+};
+
+window.rejectSub = async function(row) {
+  try {
+    const data = await apiPost({ action: "reject_submission", password: adminPassword, row });
+    if (data.success) await loadAdminSubs();
+    else alert(data.message);
+  } catch (e) { alert(e.message); }
+};
+
+window.deleteSub = async function(row) {
+  if (!confirm("Hapus submission ini?")) return;
+  try {
+    const data = await apiPost({ action: "delete_submission", password: adminPassword, row });
+    if (data.success) {
+      await loadAdminSubs();
+      await loadAdminStats();
+    } else alert(data.message);
+  } catch (e) { alert(e.message); }
+};
+
+/* Edit modal */
+document.getElementById("cancelEditBtn")?.addEventListener("click", () => {
+  document.getElementById("editModal").hidden = true;
+});
+
+document.getElementById("saveEditBtn")?.addEventListener("click", async () => {
+  const row = Number(document.getElementById("editRow").value);
+  const payload = {
+    action: "update_thought",
+    password: adminPassword,
+    row,
+    category: document.getElementById("editCategory").value,
+    emoji: document.getElementById("editEmoji").value,
+    text: document.getElementById("editText").value,
+    status: document.getElementById("editStatus").value
+  };
+  const msg = document.getElementById("editStatusMsg");
+  try {
+    const data = await apiPost(payload);
+    if (data.success) {
+      msg.textContent = "✅ Tersimpan";
+      msg.className = "form-status success";
+      document.getElementById("editModal").hidden = true;
+      await loadAdminThoughts();
     } else {
-      throw new Error(data.message || "Gagal mengirim");
+      msg.textContent = data.message;
+      msg.className = "form-status error";
+    }
+  } catch (e) {
+    msg.textContent = e.message;
+    msg.className = "form-status error";
+  }
+});
+
+/* Add thought form */
+document.getElementById("addThoughtForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("addStatusMsg");
+  const payload = {
+    action: "create_thought",
+    password: adminPassword,
+    category: document.getElementById("addCategory").value,
+    emoji: document.getElementById("addEmoji").value || "💭",
+    text: document.getElementById("addText").value.trim(),
+    status: document.getElementById("addStatus").value
+  };
+  try {
+    const data = await apiPost(payload);
+    if (data.success) {
+      msg.textContent = "✅ Thought ditambahkan (ID: " + data.id + ")";
+      msg.className = "form-status success";
+      e.target.reset();
+      await loadAdminThoughts();
+      await loadAdminStats();
+    } else {
+      msg.textContent = data.message;
+      msg.className = "form-status error";
     }
   } catch (err) {
-    formStatus.textContent = "❌ Gagal mengirim. Coba lagi nanti ya.";
-    formStatus.classList.add("error");
-    console.error(err);
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Kirim 🚀";
+    msg.textContent = err.message;
+    msg.className = "form-status error";
   }
 });
 
@@ -250,12 +599,11 @@ submitForm.addEventListener("submit", async (e) => {
   await loadThoughts();
   showLoading(false);
 
-  // Coba ambil total global
   try {
     const data = await apiGet({ action: "stats" });
     if (data.success && data.total != null) {
-      globalCount.textContent = data.total;
-      globalStat.hidden = false;
+      if (globalCount) globalCount.textContent = data.total;
+      if (globalStat) globalStat.hidden = false;
     }
   } catch (_) {}
 })();

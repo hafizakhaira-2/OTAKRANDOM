@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panduan – OTAKRANDOM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo">🧠 OTAKRANDOM</a>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link">Generator</a>
+        <a href="panduan.html" class="nav-link active">Panduan</a>
+        <button class="nav-link admin-btn" onclick="location.href='index.html#admin'">🔐 Admin</button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="guide-page">
+    <h1>📖 Panduan Pakai OTAKRANDOM</h1>
+    <p>Website ini adalah generator pemikiran random / overthinking. Data-nya hidup di Google Sheets lewat Apps Script — gratis, tanpa server sendiri.</p>
+
+    <h2>Untuk Pengunjung</h2>
+    <div class="guide-card">
+      <h3>🎲 Generate pemikiran</h3>
+      <p>Pilih kategori (Random, Absurd, Deep, atau Jam 2 Pagi), lalu klik tombol <strong>“Aku kepikiran sesuatu...”</strong> atau <strong>LAGI</strong>. Setiap klik menghitung counter lokal di browser kamu + total global di database.</p>
+    </div>
+    <div class="guide-card">
+      <h3>✍️ Kirim pemikiran sendiri</h3>
+      <p>Klik “Kirim pemikiran random kamu”, isi kategori + teks (min 10 karakter), lalu submit. Submission masuk status <code>Pending</code> dan baru muncul di generator setelah admin approve.</p>
+    </div>
+
+    <h2>Fitur Database (yang jalan di belakang layar)</h2>
+    <ul>
+      <li><strong>Thoughts</strong> — daftar pemikiran yang sudah disetujui. Hanya yang status <code>Approved</code> yang muncul di generator.</li>
+      <li><strong>Submissions</strong> — antrian kiriman dari pengunjung (Pending → Approved / Rejected).</li>
+      <li><strong>Stats</strong> — counter global <code>total_generates</code> yang naik setiap ada yang generate.</li>
+    </ul>
+    <p>Semua data disimpan di Google Spreadsheet. Frontend (GitHub Pages) hanya memanggil API Apps Script. Tidak ada password atau ID spreadsheet yang disimpan di kode frontend.</p>
+
+    <h2>Untuk Admin</h2>
+    <div class="guide-card">
+      <h3>🔐 Masuk panel admin</h3>
+      <p>Klik tombol <strong>Admin</strong> di header → masukkan password <code>Bismillaah</code>. Session disimpan di sessionStorage (hilang kalau tab ditutup).</p>
+    </div>
+    <div class="guide-card">
+      <h3>📝 Kelola Thoughts (CRUD)</h3>
+      <ul>
+        <li><strong>Lihat</strong> semua thought (termasuk Draft / Hidden)</li>
+        <li><strong>Filter</strong> by teks atau status</li>
+        <li><strong>Edit</strong> kategori, emoji, teks, status</li>
+        <li><strong>Hapus</strong> thought</li>
+        <li><strong>Tambah</strong> thought baru lewat tab “➕ Tambah”</li>
+      </ul>
+    </div>
+    <div class="guide-card">
+      <h3>📥 Review Submissions</h3>
+      <ul>
+        <li><strong>✅ Approve</strong> — otomatis copy ke sheet Thoughts (status Approved) + tandai submission Approved</li>
+        <li><strong>❌ Reject</strong> — ubah status jadi Rejected</li>
+        <li><strong>🗑️ Hapus</strong> — buang dari sheet</li>
+      </ul>
+    </div>
+
+    <h2>Setup teknis (sekali saja)</h2>
+    <ol>
+      <li>Buat Google Spreadsheet dengan 3 sheet: <code>Thoughts</code>, <code>Submissions</code>, <code>Stats</code> + header yang benar.</li>
+      <li>Paste <code>Code.gs</code> ke Apps Script.</li>
+      <li>Set <strong>Script Properties</strong>:
+        <ul>
+          <li><code>SPREADSHEET_ID</code> = ID spreadsheet</li>
+          <li><code>ADMIN_PASSWORD</code> = Bismillaah</li>
+        </ul>
+      </li>
+      <li>Deploy sebagai <strong>Web app</strong> (Anyone, Execute as Me) → copy URL <code>/exec</code>.</li>
+      <li>Paste URL itu ke <code>script.js</code> → <code>const API_URL = "..."</code>.</li>
+      <li>Jalankan fungsi <code>seedInitialData()</code> sekali dari editor Apps Script untuk isi data awal.</li>
+      <li>Upload frontend ke GitHub Pages.</li>
+    </ol>
+
+    <h2>Kenapa Script Properties?</h2>
+    <p>Karena website di-host di GitHub Pages (public). Kalau password / spreadsheet ID ditulis di file JS, siapa saja bisa lihat. Script Properties hanya bisa dibaca oleh Apps Script yang jalan di sisi Google — aman.</p>
+
+    <p style="margin-top:40px; opacity:.5; font-size:13px;">Dibuat dengan 🫠 — OTAKRANDOM v3</p>
+  </div>
+</body>
+</html>
