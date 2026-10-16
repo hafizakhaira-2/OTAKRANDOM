@@ -495,8 +495,9 @@ function getSheet(name) {
 function getNextId(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return 1;
-  // Assume first column is id (or try to find max)
-  const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat();
+  // getRange(row, column, numRows, numColumns)
+  const numRows = lastRow - 1; // rows 2..lastRow
+  const ids = sheet.getRange(2, 1, numRows, 1).getValues().flat();
   let max = 0;
   for (const v of ids) {
     const n = Number(v);
@@ -546,7 +547,7 @@ function seedInitialData() {
     [23, "night", "👀", "Kenapa saat mau tidur otak tiba-tiba membuka folder memori yang nggak diminta?", 0, "Approved", new Date().toISOString()],
     [24, "night", "💭", "Kenapa ide bagus datang saat nggak bisa langsung dicatat?", 0, "Approved", new Date().toISOString()]
   ];
-  sheet.getRange(2, 1, data.length + 1, 7).setValues(data);
+  sheet.getRange(2, 1, data.length, 7).setValues(data); // numRows = data.length
 
   // Submissions
   const sub = getSheet(SHEET_SUBMISSIONS);
